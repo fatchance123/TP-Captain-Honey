@@ -1,2 +1,29 @@
-print("Hello World")
-print("I love 112")
+from cmu_graphics import *
+def onAppStart(app):
+    app.level = 0
+
+def drawFractal(level, cx, cy, r):
+    if level == 0:
+        drawCircle(cx, cy, r)
+    else:
+        drawCircle(cx, cy, r*3/4)
+        drawFractal(level-1, cx-r/2, cy-2/3*r, r/3)
+        drawFractal(level-1, cx+r/2, cy-2/3*r, r/3)
+
+def onKeyPress(app, key):
+    if (key in ['up', 'right']) and (app.level < 4):
+        app.level += 1
+    elif (key in ['down', 'left']) and (app.level > 0):
+        app.level -= 1
+
+def redrawAll(app):
+    drawFractal(app.level, 200, 250, 150)
+    drawLabel(f'Level {app.level} Fractal',
+              app.width/2, 30, size=16, bold=True)
+    drawLabel('Use arrows to change level',
+              app.width/2, 50, size=12, bold=True)
+
+def main():
+    runApp()
+
+main()
