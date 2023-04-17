@@ -1,27 +1,53 @@
 from cmu_graphics import *
+
+class Bee:
+
+    def __init__(self, cx, cy):
+        self.cx = cx
+        self.cy = cy
+        self.velox = 0
+        self.veloy = 0
+
+    def drawBee(self, app):
+        drawOval(self.cx, self.cy, 50, 35, fill = "gold", border = None, opacity = 100)
+        drawLine(self.cx, self.cy + 17.5, self.cx, self.cy - 17.5, fill = "black")
+        drawLine(self.cx + 8, self.cy + 16.5, self.cx + 8, self.cy - 16.5, fill = "black")
+        drawLine(self.cx - 8, self.cy + 16.5, self.cx - 8, self.cy - 16.5, fill = "black")
+        drawLine(self.cx + 16, self.cy + 12.5, self.cx + 16, self.cy - 12.5, fill = "black")
+        drawLine(self.cx - 16, self.cy + 12.5, self.cx - 16, self.cy - 12.5, fill = "black")
+        drawCircle(self.cx - 20, self.cy, 2, fill = "black", align = "center")
+        
+    def mouseMove(self, mouseX, mouseY):
+        x = mouseX - self.cx
+        y = mouseY - self.cy
+        self.cx += x/30
+        self.cy += y/30
+        d = distance(self.cx, mouseX, self.cy, mouseY)
+        if d > 0:
+            self.velox = (x/30)/d
+            self.veloy = (y/30)/d
+        self.cx += self.velox 
+        self.cy += self.veloy 
+        
+        
+    
+
+
 def onAppStart(app):
-    app.level = 0
+    app.Bee = Bee(app.width/2, app.height/2)
 
-def drawFractal(level, cx, cy, r):
-    if level == 0:
-        drawCircle(cx, cy, r)
-    else:
-        drawCircle(cx, cy, r*3/4)
-        drawFractal(level-1, cx-r/2, cy-2/3*r, r/3)
-        drawFractal(level-1, cx+r/2, cy-2/3*r, r/3)
-
-def onKeyPress(app, key):
-    if (key in ['up', 'right']) and (app.level < 4):
-        app.level += 1
-    elif (key in ['down', 'left']) and (app.level > 0):
-        app.level -= 1
 
 def redrawAll(app):
-    drawFractal(app.level, 200, 250, 150)
-    drawLabel(f'Level {app.level} Fractal',
-              app.width/2, 30, size=16, bold=True)
-    drawLabel('Use arrows to change level',
-              app.width/2, 50, size=12, bold=True)
+    app.Bee.drawBee(app)
+
+def onMouseMove(app, mouseX, mouseY):
+    app.Bee.mouseMove(mouseX, mouseY)
+
+def distance(x1, x2, y1, y2):
+    return (((x2 - x1)**2)+((y2 - y1)**2))**0.5
+
+def timerFired(app):
+    app.Bee.mouseMove(app.mouseX,app.mouseY)
 
 def main():
     runApp()
