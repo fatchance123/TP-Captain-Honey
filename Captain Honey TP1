@@ -1,53 +1,145 @@
 from cmu_graphics import *
-
+import random
+import math
 class Bee:
 
     def __init__(self, cx, cy):
         self.cx = cx
         self.cy = cy
-        self.velox = 0
-        self.veloy = 0
+        self.inven = {"blue": 0, "green": 0, "yellow": 0}
 
     def drawBee(self, app):
-        drawOval(self.cx, self.cy, 50, 35, fill = "gold", border = None, opacity = 100)
-        drawLine(self.cx, self.cy + 17.5, self.cx, self.cy - 17.5, fill = "black")
-        drawLine(self.cx + 8, self.cy + 16.5, self.cx + 8, self.cy - 16.5, fill = "black")
-        drawLine(self.cx - 8, self.cy + 16.5, self.cx - 8, self.cy - 16.5, fill = "black")
-        drawLine(self.cx + 16, self.cy + 12.5, self.cx + 16, self.cy - 12.5, fill = "black")
-        drawLine(self.cx - 16, self.cy + 12.5, self.cx - 16, self.cy - 12.5, fill = "black")
-        drawCircle(self.cx - 20, self.cy, 2, fill = "black", align = "center")
-        
+        drawOval(self.cx, self.cy, 50, 35, fill="gold", border=None, opacity=100)
+        drawLine(self.cx, self.cy + 17.5, self.cx, self.cy - 17.5, fill="black")
+        drawLine(self.cx + 8, self.cy + 16.5, self.cx + 8, self.cy - 16.5, fill="black")
+        drawLine(self.cx - 8, self.cy + 16.5, self.cx - 8, self.cy - 16.5, fill="black")
+        drawLine(self.cx + 16, self.cy + 12.5, self.cx + 16, self.cy - 12.5, fill="black")
+        drawLine(self.cx - 16, self.cy + 12.5, self.cx - 16, self.cy - 12.5, fill="black")
+        drawCircle(self.cx - 20, self.cy, 2, fill="black", align="center")
+
     def mouseMove(self, mouseX, mouseY):
         x = mouseX - self.cx
         y = mouseY - self.cy
-        self.cx += x/30
-        self.cy += y/30
-        d = distance(self.cx, mouseX, self.cy, mouseY)
-        if d > 0:
-            self.velox = (x/30)/d
-            self.veloy = (y/30)/d
-        self.cx += self.velox 
-        self.cy += self.veloy 
+        self.cx += x / 30
+        self.cy += y / 30
         
-        
-    
+    def playerOnStep(self):
+        pass
 
+    def pollinate(self, flower):
+        if flower.poll == "Pollinator" and not flower.gather:
+            flower.gather = True
+            self.inven[flower.colour] += 1
+            drawCircle(self.cx, self.cy + 25, 5, fill=flower.colour)
+        elif flower.poll == "Pollen" and not flower.grown:
+            if self.inven[flower.colour] > 0:
+                flower.grow()
+                self.inven[flower.colour] -= 1
+
+    def collision(self, flowers):
+        for flower in flowers:
+            d = distance(self.cx, flower.position[0], self.cy, flower.position[1])
+            if d < 20:
+                if flower.poll == "Pollen":
+                    flower.pollinate(self)
+                elif flower.poll == "Pollinator":
+                    flower.gather(self)
+
+class Flower:
+
+    def __init__(self, position, colour, poll):
+        self.position = position
+        self.colour = colour
+        self.poll = poll
+        self.grown = False
+        self.growth = 0
+        self.growthrate = 1
+        self.growthmax = 50
+        self.speed = 3
+        self.direction = math.pi/8
+
+    def drawFlower(self, app):
+        if self.poll == "Pollinator":
+            drawCircle(self.position[0], self.position[1], 10, fill="white", border="blue", borderWidth=2, align="center")
+        else:
+            drawCircle(self.position[0], self.position[1], 15, fill=self.colour, align="center")
+        if self.grown == True:
+            drawCircle(self.position[0], self.position[1], 20 + self.growth, fill=None, border=self.colour, borderWidth=2, align="center")
+        else:
+            drawCircle(self.position[0], self.position[1], 20, fill=None, border = self.colour, borderWidth = 2, align="center")
+
+    def grow(self):
+        if not self.grown:
+            self.growth += self.growthrate
+            if self.growth >= self.growthmax:
+                self.grown = True
+
+    def pollinate(self, bee):
+        if not self.grown and self.poll == "Pollen":
+            if bee.inven[self.colour] > 0:
+                bee.inven[self.colour] -= 1
+                self.grow()
+                return True
+        return False
+
+    def gather(self, bee):
+        if not self.grown and self.poll == "Pollinator":
+            self.poll = "Pollen"
+            bee.inven[self.colour] += 1
+            return True
+        return False
+
+    def moveFlower(self, speed, app):
+        dx = self.speed * math.cos(self.direction)
+        dy = -self.speed * math.sin(self.direction)
+        self.position[0] += dx
+        self.position[1] += dy
+        if self.position[0] < 20:
+            self.direction = math.pi - self.direction  
+            self.position[0] = 20
+        elif self.position[0] > app.width - 20:
+            self.direction = math.pi - self.direction  
+        
+
+    def checkOffScreen(self, app):
+        if self.position[1] + 20 + self.growth < 0:
+            return True
+        return False
 
 def onAppStart(app):
     app.Bee = Bee(app.width/2, app.height/2)
+    app.flowers = [Flower([random.randint(50, app.width-50), random.randint(app.height+50, app.height+200)], "blue", "Pollen"),
+                   Flower([random.randint(50, app.width-50), random.randint(app.height+50, app.height+200)], "green", "Pollinator"),
+                   Flower([random.randint(50, app.width-50), random.randint(app.height+50, app.height+200)], "yellow", "Pollen")]
+    app.flowerSpeed = 1
+    app.toRemove = []
 
+def onStep(app):
+    app.Bee.playerOnStep()
+    for flower in app.flowers:
+        flower.moveFlower(app.flowerSpeed, app)
+        if flower.checkOffScreen(app):
+            app.toRemove.append(flower)
+    for flower in app.toRemove:
+        app.flowers.remove(flower)
+    app.toRemove.clear()
+    app.Bee.collision(app.flowers)
+    
 
 def redrawAll(app):
     app.Bee.drawBee(app)
+    for flower in app.flowers:
+        flower.drawFlower(app)
 
 def onMouseMove(app, mouseX, mouseY):
     app.Bee.mouseMove(mouseX, mouseY)
 
-def distance(x1, x2, y1, y2):
-    return (((x2 - x1)**2)+((y2 - y1)**2))**0.5
+def distance(x1, y1, x2, y2):
+    return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
 
 def timerFired(app):
-    app.Bee.mouseMove(app.mouseX,app.mouseY)
+    app.Bee.mouseMove(app.mouseX, app.mouseY)
+    pass
 
 def main():
     runApp()
